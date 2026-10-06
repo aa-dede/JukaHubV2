@@ -97,7 +97,7 @@ func downloadFile(url, dest string) error {
 	if err != nil {
 		return err
 	}
-	rw := &io.WriteCloserNW{w: out}
+	rw := &ioWriteCloserNW{w: out}
 	// Copy with a hard cap, then check whether the body was truncated.
 	n, err := io.Copy(rw, rate)
 	if err != nil {
@@ -241,8 +241,8 @@ func ensureDirPath(dir string) string {
 // safeInt converts a string to int32 without silent truncation. If the value
 // is too large or not a valid integer, it returns the fallback value.
 func safeInt(text string, fallback int32) int32 {
-	v, err := parsePosInt(text)
-	if err != nil {
+	v, ok := parsePosInt(text)
+	if !ok {
 		return fallback
 	}
 	return v
@@ -613,7 +613,12 @@ func latestFile(dir, filter string) (string, error) {
 		if err != nil {
 			continue
 		}
-		if !found || info.ModTime().After(best.Info().ModTime()) {
+		if !found {
+			best = e
+			found = true
+			continue
+		}
+		if bestInfo, berr := best.Info(); berr == nil && info.ModTime().After(bestInfo.ModTime()) {
 			best = e
 			found = true
 		}
