@@ -657,11 +657,12 @@ func ensureHelperTool(tool string, config *Config) error {
 		exeName += ".exe"
 	}
 	target := filepath.Join(dir, exeName)
-	if _, err := os.Stat(target); err == nil {
+	_, statErr := os.Stat(target)
+	if statErr == nil {
 		return nil
 	}
-	if !os.IsNotExist(err) {
-		return fmt.Errorf("tools directory check failed for %s: %w", target, err)
+	if !os.IsNotExist(statErr) {
+		return fmt.Errorf("tools directory check failed for %s: %w", target, statErr)
 	}
 	logPatch("[TOOLS] %s missing from %s; attempting automatic download into %s", tool, target, dir)
 	return downloadHelperTool(tool, target, config)
@@ -1583,6 +1584,11 @@ func MigrateConfigFile(path string) (string, error) {
 			return "", fmt.Errorf("config file missing: %s", path)
 		}
 		return "", fmt.Errorf("config read: %w", err)
+	}
+	// Decode into a generic map so unknown fields survive the migration.
+	var raw map[string]interface{}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return "", fmt.Errorf("config is not valid JSON: %w", err)
 	}
 	before, err := json.Marshal(raw)
 	if err != nil {
