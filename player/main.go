@@ -1909,8 +1909,10 @@ func ytDlpExtraArgs(config *Config) string {
 	return strings.Join(parts, " ")
 }
 
-// ytDlpExtraArgsSlice returns extra yt-dlp arguments as a string slice based on
-// config, suitable for appending to exec.Command args.
+// ytSearchCmd returns a yt-dlp search command for the current config, including
+// any extra args from ytDlpExtraArgs. It exists so the two YouTube search
+// handlers share one command builder instead of duplicating the base yt-dlp
+// invocation.
 func ytSearchCmd(config *Config) string {
 	base := `yt-dlp --flat-playlist --dump-single-json --default-search ytsearch --no-playlist --no-check-certificate --geo-bypass --skip-download --quiet --ignore-errors --playlist-start 1 --playlist-end 20 "ytsearch20:$search_query"`
 	if extra := ytDlpExtraArgs(config); extra != "" {
@@ -1919,50 +1921,6 @@ func ytSearchCmd(config *Config) string {
 	return base
 }
 
-// ytDlpExtraArgsSlice returns extra yt-dlp arguments as a string slice based on
-// the active configuration. If the Google API key is missing, empty, or cannot be
-// decrypted, the returned slice is empty.
-// Deprecated: prefer the shared ytSearchCmd builder where possible.
-
-// ytSearchCmd returns a yt-dlp search command for the current config, including
-// any extra args from ytDlpExtraArgs. It exists so the two YouTube search handlers
-// share one command builder instead of duplicating the base yt-dlp invocation.
-
-// ytSearchCmd returns a yt-dlp search command for the current config, including
-// any extra args from ytDlpExtraArgs. It exists so the two YouTube search handlers
-// share one command builder instead of duplicating the base yt-dlp invocation.
-func ytSearchCmd(config *Config) string {
-	base := `yt-dlp --flat-playlist --dump-single-json --default-search ytsearch --no-playlist --no-check-certificate --geo-bypass --skip-download --quiet --ignore-errors --playlist-start 1 --playlist-end 20 "ytsearch20:$search_query"`
-	if extra := ytDlpExtraArgs(config); extra != "" {
-		return base + " " + extra
-	}
-	return base
-}
-
-// ytSearchCmdV2 is a no-op alias for ytSearchCmd kept only while the codebase still
-// calls it through the generic ytDlpExtraArgs / ytDlpExtraArgsSlice path. New code
-// should use ytSearchCmd.
-func ytSearchCmdV2(config *Config) string {
-	return ytSearchCmd(config)
-}
-
-// ytSearchCmdLegacy is a no-op alias for ytSearchCmd kept only until the codebase
-// is fully migrated away from the duplicated base-yt-dlp string literal.
-func ytSearchCmdLegacy(config *Config) string {
-	return ytSearchCmd(config)
-}
-
-// ytSearchCmdLegacy is a no-op alias for ytSearchCmd kept only until the codebase
-// is fully migrated away from the duplicated base-yt-dlp string literal.
-func ytSearchCmdLegacy(config *Config) string {
-	return ytSearchCmd(config)
-}
-
-// ytSearchCmdLegacy is a no-op alias for ytSearchCmd kept only until the codebase
-// is fully migrated away from the duplicated base-yt-dlp string literal.
-func ytSearchCmdLegacy(config *Config) string {
-	return ytSearchCmd(config)
-}
 func ytDlpExtraArgsSlice(config *Config) []string {
 	var parts []string
 	if config == nil {

@@ -1,20 +1,17 @@
 package main
 
 import (
-	"archive/zip"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"math"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 )
@@ -180,17 +177,6 @@ func extractFFmpegTarXz(archivePath, requiredDir string) error {
 	return extractFFmpegFromRemoteArchive(archivePath, requiredDir)
 }
 
-// unzipFile extracts a user-selected zip into a sibling folder named <src>_unzipped,
-// refusing any entry whose cleaned path escapes the destination.
-func unzipFile(src string) error {
-	ctx := context.Background()
-	dest := strings.TrimSuffix(src, filepath.Ext(src)) + "_unzipped"
-	if err := os.MkdirAll(dest, 0o755); err != nil {
-		return err
-	}
-	return extractZipSafe(ctx, src, dest, 1024, 1<<30)
-}
-
 // hashFile returns the SHA256 of path.
 func hashFile(path string) (string, error) {
 	f, err := os.Open(path)
@@ -212,24 +198,6 @@ func runCmd(name string, args ...string) (string, error) {
 		return "", fmt.Errorf("%s %s: %v\n%s", name, strings.Join(args, " "), err, string(out))
 	}
 	return strings.TrimSpace(string(out)), nil
-}
-
-// httpGetText fetches url with timeout and returns the response body text, or "".
-func httpGetText(url string, timeout time.Duration) string {
-	client := &http.Client{Timeout: timeout}
-	resp, err := client.Get(url)
-	if err != nil {
-		return ""
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return ""
-	}
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(data))
 }
 
 // ensureDirPath is a no-op helper that normalizes paths across platforms.
@@ -290,30 +258,6 @@ func firstExisting(candidates ...string) string {
 	return ""
 }
 
-// copyFile copies src to dst with 0o600 permissions for the destination.
-func copyFile(src, dst string) error {
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-
-	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
-		return err
-	}
-
-	out, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	if _, err = io.Copy(out, in); err != nil {
-		return err
-	}
-	return out.Close()
-}
-
 // retryDo retries fn up to maxAttempts times on transient errors.
 func retryDo(maxAttempts int, fn func() error) error {
 	var err error
@@ -327,12 +271,6 @@ func retryDo(maxAttempts int, fn func() error) error {
 		}
 	}
 	return fmt.Errorf("failed after %d attempts: %w", maxAttempts, err)
-}
-
-// sha256Hex returns the hex-encoded SHA256 of data.
-func sha256Hex(data []byte) string {
-	h := sha256.Sum256(data)
-	return hex.EncodeToString(h[:])
 }
 
 // containsIgnoreCase reports whether substr appears in s, ignoring case.
@@ -396,18 +334,6 @@ func clampAngle(deg float64) float64 {
 		deg += 360
 	}
 	return deg
-}
-
-// lerpInt32 linearly interpolates between a and b by t in [0,1].
-func lerpInt32(a, b, t int32) int32 {
-	if t <= 0 {
-		return a
-	}
-	if t >= 1 {
-		return b
-	}
-	diff := b - a
-	return a + int32(float64(diff)*float64(t))
 }
 
 // lerpFloat64 linearly interpolates between a and b by t in [0,1].
@@ -729,15 +655,6 @@ func absPath(path string) (string, error) {
 		return filepath.Clean(path), nil
 	}
 	return filepath.Abs(path)
-}
-
-// resolvePath returns the cleaned absolute path for path.
-func resolvePath(path string) (string, error) {
-	p, err := absPath(path)
-	if err != nil {
-		return "", err
-	}
-	return filepath.Clean(p), nil
 }
 
 // walkFiles walks root and calls fn for each file (not dir).
