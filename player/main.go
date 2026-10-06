@@ -3333,16 +3333,12 @@ func handleKeyboardInput(config *Config) {
 			updateInputVariable(config)
 			virtualKeyboardActive = false
 			activeSceneIndex = -1
-			activeElementIndex = -1					// If the active scene is a search scene, trigger its search button
-						if currentSceneIndex >= 0 && currentSceneIndex < len(config.Scenes) &&
-							sceneHasSearchResults(config.Scenes[currentSceneIndex]) {
-							if len(config.Scenes[currentSceneIndex].Elements) == 0 {
-								break
-							}
-						}
-						if len(config.Scenes[currentSceneIndex].Elements) == 0 {
-							break
-
+			activeElementIndex = -1
+			// If the active scene is a search scene, trigger its search button
+			if currentSceneIndex >= 0 && currentSceneIndex < len(config.Scenes) &&
+				sceneHasSearchResults(config.Scenes[currentSceneIndex]) {
+				if len(config.Scenes[currentSceneIndex].Elements) == 0 {
+					break
 				}
 				for _, elem := range config.Scenes[currentSceneIndex].Elements {
 					if elem.Type == "button" && elem.Trigger == "yt_search" {
@@ -3350,8 +3346,8 @@ func handleKeyboardInput(config *Config) {
 						break
 					}
 				}
-				}
-				default:
+			}
+		default:
 					inputTextBuffer += key
 				}
 				if key != "ENTER" && key != "⇧" {
@@ -4873,7 +4869,8 @@ func handleTrigger(renderer *sdl.Renderer, config *Config, element Element) {
 		if q == "" {
 			publishCustom("search_error", "Type a search query first.")
 			return
-		}	cmd := ytSearchCmd(config)
+		}
+		cmd := ytSearchCmd(config)
 	go executeYouTubeSearch(config, cmd, "search_results", snapshotVars(config))
 	case "youtube_smart":
 		q := ""
@@ -4887,7 +4884,8 @@ func handleTrigger(renderer *sdl.Renderer, config *Config, element Element) {
 		if strings.Contains(q, "youtube.com") || strings.Contains(q, "youtu.be") {
 			playVideoURL(config, q)
 			return
-		}	cmd := ytSearchCmd(config)
+		}
+		cmd := ytSearchCmd(config)
 	go executeYouTubeSearch(config, cmd, "search_results", snapshotVars(config))
 	case "youtube_trending":
 		go fetchTrendingVideos(config, "search_results", snapshotVars(config))
@@ -5859,7 +5857,9 @@ func moveHomeSelection(config *Config, dx, dy int) {
 	}
 }
 
-// --- Main ---func main() {
+// --- Main ---
+
+func main() {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("Panic: %v\n%s", r, debug.Stack())
