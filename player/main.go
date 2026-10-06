@@ -1715,14 +1715,18 @@ func ffplayEnv(ffplayPath string) []string {
 			env = append(env, "PATH="+dir+string(os.PathListSeparator)+path)
 		}
 	}
-	env = append(env,
-		"SDL_AUDIODRIVER=directsound",
-	)
 	// NOTE: Do NOT force SDL_VIDEODRIVER=directx here. On some systems the
 	// DirectX SDL backend fails to initialize for the ffplay child process
 	// ("Could not initialize SDL - directx not available"), while the default
 	// auto-detected backend (which IPTV playback uses successfully) works.
 	// Letting SDL pick its own video driver is the reliable choice.
+	//
+	// The same goes for the audio driver: SDL_AUDIODRIVER=directsound only
+	// exists on Windows. On Linux handhelds (Trimui Smart Pro) it would make
+	// SDL fail to open audio at all, so it stays Windows-only.
+	if IsWindows() {
+		env = append(env, "SDL_AUDIODRIVER=directsound")
+	}
 	return env
 }
 
@@ -2788,7 +2792,7 @@ func playVideoInfo(config *Config, v VideoInfo) {
 			"--geo-bypass",
 			"--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 			"--extractor-args", "youtube:player_client=android,web;youtube:player_skip=webpage",
-			"-f", "best[height<=720]/best",
+			"-f", videoFormatSelector(config),
 			url,
 		}
 		ytArgs = append(ytArgs, ytDlpExtraArgsSlice(config)...)
@@ -2843,6 +2847,22 @@ func playVideoInfo(config *Config, v VideoInfo) {
 	}()
 }
 
+// videoFormatSelector returns the yt-dlp format selector used for playback.
+// The ceiling comes from variables.playbackResolution (Settings → Playback
+// resolution) so slow devices such as the Trimui Smart Pro can request 360p
+// instead of always asking for 720p.
+func videoFormatSelector(config *Config) string {
+	maxHeight := 720
+	if config != nil {
+		if res := strings.TrimSpace(config.Variables.PlaybackResolution); res != "" && res != "best" {
+			if h, err := strconv.Atoi(res); err == nil && h > 0 {
+				maxHeight = h
+			}
+		}
+	}
+	return fmt.Sprintf("best[height<=%d]/best", maxHeight)
+}
+
 func playWithDirectURL(config *Config, ffplayPath, ytDlpPath, url string) {
 	log.Printf("[DEBUG] playWithDirectURL: trying --get-url for %s", url)
 	getArgs := []string{
@@ -2851,7 +2871,7 @@ func playWithDirectURL(config *Config, ffplayPath, ytDlpPath, url string) {
 		"--geo-bypass",
 		"--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 		"--extractor-args", "youtube:player_client=android,web;youtube:player_skip=webpage",
-		"-f", "best[height<=720]/best",
+		"-f", videoFormatSelector(config),
 		url,
 	}
 	getArgs = append(getArgs, ytDlpExtraArgsSlice(config)...)
@@ -2922,7 +2942,7 @@ func playWithTempFile(config *Config, ffplayPath, ytDlpPath, url string, startSe
 		"--no-continue",
 		"--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 		"--extractor-args", "youtube:player_client=android,web;youtube:player_skip=webpage",
-		"-f", "best[height<=720]/best",
+		"-f", videoFormatSelector(config),
 		url,
 	}
 	dlArgs = append(dlArgs, ytDlpExtraArgsSlice(config)...)
