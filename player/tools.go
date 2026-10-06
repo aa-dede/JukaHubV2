@@ -140,21 +140,29 @@ func (c *ioWriteCloserNW) Close() error {
 // empty string when mpv is not installed.
 func findMPVPath() string {
 	candidates := []string{filepath.Join(".", "required", "mpv")}
-if IsWindows() {
-	candidates = append(candidates, C:\\Program Files\\mpv\\mpv.exe, C:\\Program Files (x86)\\mpv\\mpv.exe, "mpv.exe")
-} else {
-	candidates = append(candidates, "/usr/bin/mpv", "/usr/local/bin/mpv", "/bin/mpv", "mpv")
-}
-for _, c := range candidates {
-	if info, err := os.Stat(c); err == nil && !info.IsDir() {
-		return c
+	if IsWindows() {
+		// Resolve Program Files instead of hard-coding a drive letter.
+		if pf := os.Getenv("ProgramFiles"); pf != "" {
+			candidates = append(candidates, filepath.Join(pf, "mpv", "mpv.exe"))
+		}
+		if pf := os.Getenv("ProgramFiles(x86)"); pf != "" {
+			candidates = append(candidates, filepath.Join(pf, "mpv", "mpv.exe"))
+		}
+		candidates = append(candidates, "mpv.exe")
+	} else {
+		candidates = append(candidates, "/usr/bin/mpv", "/usr/local/bin/mpv", "/bin/mpv", "mpv")
 	}
+	for _, c := range candidates {
+		if info, err := os.Stat(c); err == nil && !info.IsDir() {
+			return c
+		}
+	}
+	if p, err := exec.LookPath("mpv"); err == nil {
+		return p
+	}
+	return ""
 }
-if p, err := exec.LookPath("mpv"); err == nil {
-	return p
-}
-return ""
-}
+
 
 func extractFilesFromZip(ctx context.Context, archivePath, requiredDir string, wants []string) error {
 	// Keep a small, targeted extraction path for bundled tool archives, but
