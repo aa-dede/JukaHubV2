@@ -1830,17 +1830,19 @@ func decryptCustomStringResult(config *Config, key string) (string, error) {
 
 // sanitizeURL removes sensitive query parameters from URLs for safe logging.
 // This prevents API keys, tokens, and other secrets from appearing in logs.
-func sanitizeURL(url string) string {
-	if url == "" {
+// The parameter is deliberately not called "url" so the net/url package stays
+// reachable inside the function.
+func sanitizeURL(rawURL string) string {
+	if rawURL == "" {
 		return ""
 	}
 	// Only process http/https URLs
-	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
-		return url
+	if !strings.HasPrefix(rawURL, "http://") && !strings.HasPrefix(rawURL, "https://") {
+		return rawURL
 	}
 
 	// Parse the URL and remove sensitive query params
-	if u, err := url.Parse(url); err == nil {
+	if u, err := url.Parse(rawURL); err == nil {
 		// Query parameters that might contain sensitive data
 		sensitiveParams := map[string]bool{
 			"key": true, "api_key": true, "apikey": true, "token": true,
@@ -1863,19 +1865,19 @@ func sanitizeURL(url string) string {
 		}
 	}
 
-	return url
+	return rawURL
 }
 
 // sanitizeLogURL is a wrapper that logs a sanitized URL or "<hidden>" if sanitization removed params.
-func sanitizeLogURL(url string) string {
-	if url == "" {
+func sanitizeLogURL(rawURL string) string {
+	if rawURL == "" {
 		return ""
 	}
-	sanitized := sanitizeURL(url)
+	sanitized := sanitizeURL(rawURL)
 	// If the URL changed, indicate parameters were removed
-	if sanitized != url {
+	if sanitized != rawURL {
 		// Return just the base URL without query params for safety
-		if u, err := url.Parse(url); err == nil {
+		if u, err := url.Parse(rawURL); err == nil {
 			return u.Scheme + "://" + u.Host + u.Path
 		}
 	}

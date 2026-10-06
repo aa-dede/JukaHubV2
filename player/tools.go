@@ -135,6 +135,27 @@ func (c *ioWriteCloserNW) Close() error {
 	return nil
 }
 
+// findMPVPath returns the path to the mpv binary, searching the bundled
+// tools folder, the usual system locations, and finally PATH. It returns an
+// empty string when mpv is not installed.
+func findMPVPath() string {
+	candidates := []string{filepath.Join(".", "required", "mpv")}
+if IsWindows() {
+	candidates = append(candidates, C:\\Program Files\\mpv\\mpv.exe, C:\\Program Files (x86)\\mpv\\mpv.exe, "mpv.exe")
+} else {
+	candidates = append(candidates, "/usr/bin/mpv", "/usr/local/bin/mpv", "/bin/mpv", "mpv")
+}
+for _, c := range candidates {
+	if info, err := os.Stat(c); err == nil && !info.IsDir() {
+		return c
+	}
+}
+if p, err := exec.LookPath("mpv"); err == nil {
+	return p
+}
+return ""
+}
+
 func extractFilesFromZip(ctx context.Context, archivePath, requiredDir string, wants []string) error {
 	// Keep a small, targeted extraction path for bundled tool archives, but
 	// route the actual zip extraction through the project's shared safe helper so
@@ -174,7 +195,7 @@ func extractFFmpegZip(archivePath, requiredDir string) error {
 // not implement real tar/xz extraction; it is intentionally limited to the same
 // zip-based extraction the rest of the tool download path uses.
 func extractFFmpegTarXz(archivePath, requiredDir string) error {
-	return extractFFmpegFromRemoteArchive(archivePath, requiredDir)
+	return extractFFmpegZip(archivePath, requiredDir)
 }
 
 // hashFile returns the SHA256 of path.
