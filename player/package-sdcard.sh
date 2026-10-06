@@ -102,9 +102,17 @@ if [ "$WITH_FFMPEG" = "1" ]; then
     fetch "$FFMPEG_URL" "$TMP/ffmpeg.tar.xz"
     tar -xJf "$TMP/ffmpeg.tar.xz" -C "$TMP"
     BINDIR="$(find "$TMP" -type d -name bin | head -n1)"
+    # The static builds ship with symbols (~130 MB each, 400 MB for all three).
+    # Stripping drops that to a fraction; the handhelds only have 1 GB of RAM
+    # and a FAT32 card, so the size matters more than being able to debug ffmpeg.
+    STRIP="$(command -v aarch64-linux-gnu-strip || true)"
     for tool in ffmpeg ffprobe ffplay; do
         if [ -f "$BINDIR/$tool" ]; then
             cp -f "$BINDIR/$tool" "$REQ/$tool"
+            if [ -n "$STRIP" ]; then
+                "$STRIP" --strip-unneeded "$REQ/$tool" 2>/dev/null || \
+                    echo "    warn: could not strip $tool (shipping unstripped)"
+            fi
             chmod +x "$REQ/$tool"
         fi
     done
@@ -126,7 +134,10 @@ EOF
 
 # ------------------------------------------------------------------ 5. zip
 say "Creating archive"
-( cd "$STAGE" && zip -qr "$OUT/${APP_NAME}-SDCARD.zip" Apps )
+# $OUT is relative to the script directory, so resolve it before cd'ing into
+# $STAGE - otherwise zip looks for dist/.../dist/... and fails with I/O error.
+OUT_ABS="$(cd "$OUT" && pwd)"
+( cd "$STAGE" && zip -qr "$OUT_ABS/${APP_NAME}-SDCARD.zip" Apps )
 
 SIZE="$(du -h "$OUT/${APP_NAME}-SDCARD.zip" | cut -f1)"
 
