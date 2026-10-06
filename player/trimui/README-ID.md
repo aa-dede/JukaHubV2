@@ -100,13 +100,16 @@ Kirim file itu ke sini kalau ada masalah, tanpa perlu SSH.
   statis resmi `yt-dlp_linux_aarch64`.
 * **ffmpeg** dipakai sebagai build statis ARM64 dari BtbN (ffmpeg/ffprobe/ffplay).
 * **Config ringkas:** `player/trimui/make-config.ps1` membuat
-  `player/trimui/jukaconfig.json` dari config penuh — hanya menyisakan
+  `player/trimui/jukaconfig.device.json` dari config penuh — hanya menyisakan
   Main / Tube / Shorts / Favorites / Settings / Logs / Exit.
+  Namanya sengaja **bukan** `jukaconfig.json` karena `player/.gitignore`
+  mengecualikan file itu (bisa berisi API key user) — kalau nama sama, config
+  perangkat tidak ikut ter-commit dan build CI akan gagal.
   Jalankan ulang script itu kalau config penuh berubah:
 
   ```powershell
   cd player/trimui
-  powershell -File .\make-config.ps1 -Src ..\jukaconfig.json -Dst .\jukaconfig.json
+  powershell -File .\make-config.ps1 -Src ..\jukaconfig.json -Dst .\jukaconfig.device.json
   ```
 * **Perubahan kode untuk perangkat:**
   * `videoFormatSelector()` — batas resolusi playback ikut `playbackResolution`.

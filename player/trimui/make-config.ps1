@@ -1,6 +1,9 @@
 param(
     [string]$Src = "..\jukaconfig.json",
-    [string]$Dst = ".\jukaconfig.json"
+    # Named jukaconfig.device.json on purpose: player/.gitignore excludes
+    # jukaconfig.json (it may hold user secrets), and the generated device
+    # config has to be committed for the CI build to pick it up.
+    [string]$Dst = ".\jukaconfig.device.json"
 )
 
 $ErrorActionPreference = "Stop"

@@ -65,7 +65,13 @@ echo "    CC          = $CC"
 echo "    SYSROOT     = $SYSROOT"
 go version
 go build -trimpath -ldflags "-s -w" -o "$PKG/$APP_NAME" .
-file "$PKG/$APP_NAME" || true
+
+# `file` is not installed in every toolchain image; it is only for the log.
+if command -v file >/dev/null 2>&1; then
+    file "$PKG/$APP_NAME"
+else
+    echo "    (the 'file' utility is not installed here; skipping the type report)"
+fi
 
 # The device rootfs already ships these; make sure we link against the SONAME
 # it actually provides (libSDL2-2.0.so.0 ...), not a bare libSDL2.so.
@@ -77,7 +83,7 @@ say "Staging app files"
 cp -f trimui/Apps/$APP_DIR_NAME/config.json "$PKG/config.json"
 cp -f trimui/Apps/$APP_DIR_NAME/launch.sh   "$PKG/launch.sh"
 cp -f trimui/Apps/$APP_DIR_NAME/icon.png     "$PKG/icon.png"
-cp -f trimui/jukaconfig.json                 "$PKG/jukaconfig.json"
+cp -f trimui/jukaconfig.device.json          "$PKG/jukaconfig.json"
 cp -f Inter-Regular.ttf                      "$PKG/Inter-Regular.ttf"
 cp -f background.jpg                         "$PKG/background.jpg"
 chmod +x "$PKG/launch.sh" "$PKG/$APP_NAME"
