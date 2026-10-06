@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"math"
 	"net"
@@ -6022,19 +6023,19 @@ func main() {
 	if sdl.NumJoysticks() > 0 {
 		log.Printf("[GAMEPAD] Found %d joystick(s)", sdl.NumJoysticks())
 		for i := 0; i < sdl.NumJoysticks(); i++ {
-			if sdl.GameControllerFromIndex(i) != nil {
-				gc := sdl.GameControllerFromIndex(i)
-				log.Printf("[GAMEPAD] Controller %d: %s (GUID: %s)", i, sdl.GameControllerName(gc), sdl.GameControllerGetGUID(gc))
-				if i == 0 {
-					defer gc.Close()
-				}
+			if sdl.IsGameController(i) {
+				// go-sdl2 has no GameControllerFromIndex: the name/ID are
+				// queried per index, and the handle comes from Open.
+				log.Printf("[GAMEPAD] Controller %d: %s (GUID: %s)", i,
+					sdl.GameControllerNameForIndex(i),
+					sdl.JoystickGetGUIDString(sdl.JoystickGetDeviceGUID(i)))
 			} else {
 				log.Printf("[GAMEPAD] Joystick %d: %s (not a game controller)", i, sdl.JoystickNameForIndex(i))
 			}
 		}
 		if c := sdl.GameControllerOpen(0); c != nil {
 			defer c.Close()
-			log.Printf("[GAMEPAD] Opened controller 0: %s", sdl.GameControllerName(c))
+			log.Printf("[GAMEPAD] Opened controller 0: %s", c.Name())
 		}
 	} else {
 		log.Printf("[GAMEPAD] No joysticks/gamepads detected")

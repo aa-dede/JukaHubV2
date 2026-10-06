@@ -594,9 +594,7 @@ func savePatchState() error {
 func InitPatchModule() {
 	loadPatchState()
 	checkInterruptedJournal()
-	if err := ensureDefaultRepo(); err != nil {
-		logPatch("default patch repo setup failed: %v", err)
-	}
+		ensureDefaultRepo()
 }
 
 // ---------------------------------------------------------------------------
